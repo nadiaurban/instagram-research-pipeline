@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Instagram Research Pipeline</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+
+  <aside class="sidebar">
+    <div class="sidebar-top">
+      <div class="logo">
+        <span class="logo-mark">▮</span>
+        <span class="logo-text">IG<br>Pipeline</span>
+      </div>
+      <nav class="nav">
+        <a class="nav-item active" data-section="ingest" href="#">01 Ingest</a>
+        <a class="nav-item" data-section="posts" href="#">02 Posts</a>
+        <a class="nav-item" data-section="comments" href="#">03 Comments</a>
+        <a class="nav-item" data-section="export" href="#">04 Export</a>
+        <a class="nav-item" data-section="media" href="#">05 Media</a>
+      </nav>
+    </div>
+    <div class="sidebar-status">
+      <div class="status-row">
+        <span class="status-label">Posts</span>
+        <span class="status-value" id="sb-posts">–</span>
+      </div>
+      <div class="status-row">
+        <span class="status-label">Comments</span>
+        <span class="status-value" id="sb-comments">–</span>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+
+    <!-- 01 INGEST -->
+    <section class="section active" id="section-ingest">
+      <div class="section-header">
+        <span class="section-num">01</span>
+        <h1>Ingest</h1>
+        <p class="section-desc">Upload NDJSON files exported from the Instagram Collector extension.</p>
+      </div>
+
+      <div class="upload-grid">
+        <div class="upload-card" id="drop-posts">
+          <div class="upload-icon">▤</div>
+          <div class="upload-label">Posts NDJSON</div>
+          <div class="upload-sub">instagram-posts-*.ndjson</div>
+          <input type="file" id="file-posts" accept=".ndjson" hidden>
+          <button class="btn btn-outline" onclick="document.getElementById('file-posts').click()">Choose file</button>
+          <div class="upload-status" id="status-posts"></div>
+        </div>
+
+        <div class="upload-card" id="drop-comments">
+          <div class="upload-icon">▤</div>
+          <div class="upload-label">Comments NDJSON</div>
+          <div class="upload-sub">instagram-comments-*.ndjson</div>
+          <input type="file" id="file-comments" accept=".ndjson" hidden>
+          <button class="btn btn-outline" onclick="document.getElementById('file-comments').click()">Choose file</button>
+          <div class="upload-status" id="status-comments"></div>
+        </div>
+      </div>
+
+      <div id="ingest-error" class="error-msg" style="display:none"></div>
+    </section>
+
+    <!-- 02 POSTS -->
+    <section class="section" id="section-posts">
+      <div class="section-header">
+        <span class="section-num">02</span>
+        <h1>Posts</h1>
+      </div>
+      <div id="posts-stats" class="stats-grid"></div>
+      <div class="table-toolbar">
+        <div class="preview-label">Preview</div>
+        <div class="table-controls">
+          <select class="row-select" id="mediatype-posts" onchange="applyTableFilter('posts')">
+            <option value="">All types</option>
+          </select>
+          <input type="text" class="table-filter" id="filter-posts" placeholder="Filter rows…" oninput="applyTableFilter('posts')">
+          <select class="row-select" id="rows-posts" onchange="applyTableFilter('posts')">
+            <option value="5">5 rows</option>
+            <option value="10">10 rows</option>
+            <option value="25">25 rows</option>
+            <option value="50">50 rows</option>
+            <option value="0">All</option>
+          </select>
+        </div>
+      </div>
+      <div class="preview-info" id="posts-preview-info"></div>
+      <div id="posts-table" class="table-wrap"></div>
+    </section>
+
+    <!-- 03 COMMENTS -->
+    <section class="section" id="section-comments">
+      <div class="section-header">
+        <span class="section-num">03</span>
+        <h1>Comments</h1>
+      </div>
+      <div id="comments-stats" class="stats-grid"></div>
+      <div class="table-toolbar">
+        <div class="preview-label">Preview</div>
+        <div class="table-controls">
+          <input type="text" class="table-filter" id="filter-comments" placeholder="Filter rows…" oninput="applyTableFilter('comments')">
+          <select class="row-select" id="rows-comments" onchange="applyTableFilter('comments')">
+            <option value="5">5 rows</option>
+            <option value="10">10 rows</option>
+            <option value="25">25 rows</option>
+            <option value="50">50 rows</option>
+            <option value="0">All</option>
+          </select>
+        </div>
+      </div>
+      <div class="preview-info" id="comments-preview-info"></div>
+      <div id="comments-table" class="table-wrap"></div>
+    </section>
+
+    <!-- 04 EXPORT -->
+    <section class="section" id="section-export">
+      <div class="section-header">
+        <span class="section-num">04</span>
+        <h1>Export</h1>
+        <p class="section-desc">Download parsed data as CSV files ready for your analysis pipeline.</p>
+      </div>
+      <div class="export-grid">
+        <div class="export-card">
+          <div class="export-title">Posts CSV</div>
+          <div class="export-desc">All captured posts with full schema — captions, engagement, AI label fields, media URLs.</div>
+          <a class="btn btn-primary" href="/export/posts" download>Download posts.csv</a>
+        </div>
+        <div class="export-card">
+          <div class="export-title">Comments CSV</div>
+          <div class="export-desc">All captured comments linked to posts via media_id.</div>
+          <a class="btn btn-primary" href="/export/comments" download>Download comments.csv</a>
+        </div>
+        <div class="export-card export-card--wide">
+          <div class="export-title">Merged CSV</div>
+          <div class="export-desc">Comments joined with key post fields — post URL, caption, username, AI label, engagement counts. Requires both files loaded.</div>
+          <a class="btn btn-primary" href="/export/merged" download>Download merged.csv</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- 05 MEDIA -->
+    <section class="section" id="section-media">
+      <div class="section-header">
+        <span class="section-num">05</span>
+        <h1>Media</h1>
+        <p class="section-desc">Download images and videos from captured posts. CDN URLs expire within a few hours of collection — run this promptly.</p>
+      </div>
+      <div class="media-info">
+        <div class="media-info-row"><span>Images</span><span id="media-image-count">–</span></div>
+        <div class="media-info-row"><span>Videos</span><span id="media-video-count">–</span></div>
+        <div class="media-info-row"><span>Carousel items</span><span id="media-carousel-count">–</span></div>
+      </div>
+      <button class="btn btn-primary" id="btn-media" onclick="downloadMedia()">
+        Download all media as ZIP
+      </button>
+      <div id="media-progress" style="display:none">
+        <div class="progress-bar-wrap">
+          <div class="progress-bar-fill" id="media-progress-bar"></div>
+        </div>
+        <div class="progress-text" id="media-progress-text">Starting…</div>
+      </div>
+      <div id="media-error" class="error-msg" style="display:none"></div>
+    </section>
+
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

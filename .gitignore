@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+*.pyo
+.env
+.venv/
+venv/
+.DS_Store
+
+# data files — never commit collected research data
+*.ndjson
+*.csv
+*.zip
+
+# root-level files are outdated copies; Flask uses templates/ and static/
+/index.html
+/app.css
+/app.js
