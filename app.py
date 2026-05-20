@@ -9,9 +9,7 @@ import uuid
 import zipfile
 import requests
 from datetime import datetime, timezone
-from collections import Counter
-
-from flask import Flask, render_template, request, jsonify, send_file, session, Response, stream_with_context
+from flask import Flask, render_template, request, jsonify, send_file, Response, stream_with_context
 import pandas as pd
 
 app = Flask(__name__)
@@ -28,6 +26,9 @@ store = {
 
 # ── Parsing ───────────────────────────────────────────────────────────────────
 
+_DEPRECATED_POST_COLS = {"account_ai_label", "ai_agent_owner", "transparency_label",
+                         "follower_count", "repost_count"}
+
 def parse_posts(lines):
     records = []
     for line in lines:
@@ -36,13 +37,21 @@ def parse_posts(lines):
             continue
         try:
             r = json.loads(line)
+            # Rename old field names from pre-fix collections
+            if "post_code" in r:
+                r.setdefault("shortcode", r.pop("post_code"))
+            if "taken_at" in r:
+                r["posted_at"] = r.pop("taken_at")
             # Convert timestamps
-            taken_at = r.get("taken_at")
-            if taken_at:
-                r["taken_at"] = datetime.fromtimestamp(taken_at, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+            posted = r.get("posted_at")
+            if posted:
+                r["posted_at"] = datetime.fromtimestamp(posted, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
             collected = r.get("collected_at")
             if collected:
                 r["collected_at"] = datetime.fromtimestamp(collected / 1000, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+            # Drop columns removed from the schema
+            for col in _DEPRECATED_POST_COLS:
+                r.pop(col, None)
             records.append(r)
         except Exception:
             continue
@@ -94,8 +103,8 @@ def df_stats(df, kind):
             "ai_labeled":     int(df["ai_label"].notna().sum()) if "ai_label" in df else 0,
             "partials":       int(df["is_partial"].sum()) if "is_partial" in df else 0,
             "date_range":     {
-                "from": str(df["taken_at"].min()) if "taken_at" in df else "–",
-                "to":   str(df["taken_at"].max()) if "taken_at" in df else "–",
+                "from": str(df["posted_at"].min()) if "posted_at" in df else "–",
+                "to":   str(df["posted_at"].max()) if "posted_at" in df else "–",
             },
             "image_count":    _count_url("image_url"),
             "video_count":    _count_url("video_url"),
@@ -175,7 +184,7 @@ def export(kind):
         # Bring key post fields into the comments frame
         post_cols = ["media_id", "post_url", "caption_text", "media_type",
                      "username", "like_count", "comment_count",
-                     "ai_label", "account_ai_label", "taken_at"]
+                     "ai_label", "ai_high_risk", "posted_at"]
         available = [c for c in post_cols if c in p.columns]
         df = c.merge(p[available], on="media_id", how="left", suffixes=("", "_post"))
         name = "merged"
